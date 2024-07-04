@@ -382,18 +382,19 @@
       saveAs(blob, 'pengems_design.stl');
     }
 
-    function toggleRotation() {
-      isRotating = !isRotating;
-      const rotateBtn = document.getElementById('rotate-btn');
-      if (isRotating) {
+function toggleRotation() {
+    isRotating = !isRotating;
+    const rotateBtn = document.getElementById('rotate-btn');
+    if (isRotating) {
         rotateBtn.textContent = 'Stop Rotation';
         rotateBtn.classList.add('active');
-      } else {
+    } else {
         rotateBtn.textContent = 'Start Rotation';
         rotateBtn.classList.remove('active');
-        pen.rotation.y = rotationStartPoint;
-      }
+        // Do not reset pen.rotation.y here
     }
+}
+
 
     function toggleTexture() {
       isTextured = !isTextured;
