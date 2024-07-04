@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PenGems Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/CCapture.js/1.1.0/CCapture.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webm-writer/0.2.0/webm-writer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>PenGems Visualizer</h1>
+        <div id="canvas-container"></div>
+        <input type="file" id="file-input" accept=".ai,.svg,.jpg,.jpeg,.png" />
+        <label for="file-input" class="btn">Upload Design</label>
+        <button id="clear-btn" class="btn">Clear Design</button>
+        <button id="rotate-btn" class="btn btn-toggle">Start Rotation</button>
+        <button id="texture-btn" class="btn btn-toggle">Add Texture</button>
+        <div class="slider-container">
+            <label for="brightness-slider">Brightness:</label>
+            <input type="range" id="brightness-slider" min="0" max="2" step="0.1" value="1">
+        </div>
+        <div class="export-options">
+            <button id="export-png-btn" class="btn">Export PNG</button>
+            <button id="export-jpg-btn" class="btn">Export JPG</button>
+            <button id="export-mp4-btn" class="btn">Export WEBM</button>
+            <button id="export-stl-btn" class="btn">Export STL</button>
+        </div>
+        <div class="specs">
+            <p><strong>Height:</strong> 58.6mm</p>
+            <p><strong>Top Diameter:</strong> 10mm</p>
+            <p><strong>Bottom Diameter:</strong> 8mm</p>
+            <p><strong>Straight Section:</strong> 35mm</p>
+        </div>
+    </div>
+    <script src="scripts.js"></script>
+</body>
+</html>
