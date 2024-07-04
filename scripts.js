@@ -5,6 +5,7 @@ let isRotating = false;
 let isTextured = false;
 let directionalLight, ambientLight;
 let rotationStartPoint = 0;
+let currentRotation = 0;
 
 function loadCCaptureScript(callback) {
     if (typeof CCapture === 'undefined') {
@@ -88,7 +89,8 @@ function animate() {
     requestAnimationFrame(animate);
     if (isRotating) {
         if (pen) {
-            pen.rotation.y = rotationStartPoint + (Date.now() * 0.001) % (2 * Math.PI);
+            pen.rotation.y += 0.01;
+            currentRotation = pen.rotation.y;
         }
     }
     renderer.render(scene, camera);
@@ -173,7 +175,7 @@ function applyDecal(imageData) {
                 diameter = topDiameter - (topDiameter - bottomDiameter) * ((height - y) / (height - straightSectionHeight));
             }
 
-            const adjustedU = (u + 0.5) % 1.0 * (diameter / topDiameter);
+            const adjustedU = (u * (diameter / topDiameter)) % 1.0;
             uv.setXY(i, adjustedU, v);
         }
 
@@ -256,7 +258,7 @@ function toggleRotation() {
     } else {
         rotateBtn.textContent = 'Start Rotation';
         rotateBtn.classList.remove('active');
-        pen.rotation.y = rotationStartPoint;
+        pen.rotation.y = currentRotation;
     }
 }
 
