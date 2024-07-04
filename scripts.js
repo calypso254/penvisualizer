@@ -6,6 +6,20 @@ let isTextured = false;
 let directionalLight, ambientLight;
 let rotationStartPoint = 0;
 
+function loadCCaptureScript(callback) {
+    if (typeof CCapture === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/CCapture.js/1.1.0/CCapture.all.min.js';
+        script.onload = callback;
+        script.onerror = function() {
+            console.error('Failed to load CCapture script.');
+        };
+        document.head.appendChild(script);
+    } else {
+        callback();
+    }
+}
+
 function init() {
     scene = new THREE.Scene();
     camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
@@ -182,37 +196,34 @@ function clearDecal() {
 }
 
 function exportWEBM() {
-    if (typeof CCapture === 'undefined') {
-        alert('CCapture library is not loaded. Unable to export WEBM.');
-        return;
-    }
-
-    capturer = new CCapture({
-        format: 'webm',
-        framerate: 60,
-        verbose: true,
-        name: 'pengems_design',
-        quality: 100
-    });
-
-    isRotating = true;
-    isExporting = true;
-    capturer.start();
-
-    setTimeout(() => {
-        isRotating = false;
-        isExporting = false;
-        capturer.stop();
-        capturer.save((blob) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pengems_design.webm';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+    loadCCaptureScript(function() {
+        capturer = new CCapture({
+            format: 'webm',
+            framerate: 60,
+            verbose: true,
+            name: 'pengems_design',
+            quality: 100
         });
-    }, 5000);  // Export 5 seconds of animation
+
+        isRotating = true;
+        isExporting = true;
+        capturer.start();
+
+        setTimeout(() => {
+            isRotating = false;
+            isExporting = false;
+            capturer.stop();
+            capturer.save((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pengems_design.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+        }, 5000);  // Export 5 seconds of animation
+    });
 }
 
 function exportPNG() {
@@ -286,20 +297,3 @@ document.getElementById('export-stl-btn').addEventListener('click', exportSTL);
 document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
 document.getElementById('texture-btn').addEventListener('click', toggleTexture);
 document.getElementById('brightness-slider').addEventListener('input', adjustBrightness);
-
-window.addEventListener('load', function() {
-    if (typeof CCapture === 'undefined') {
-        console.error('CCapture is not loaded. Attempting to load it manually.');
-        var script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/CCapture.js/1.1.0/CCapture.all.min.js';
-        script.onload = function() {
-            console.log('CCapture has been loaded manually.');
-        };
-        script.onerror = function() {
-            console.error('Failed to load CCapture manually.');
-        };
-        document.body.appendChild(script);
-    } else {
-        console.log('CCapture is loaded and ready.');
-    }
-});
