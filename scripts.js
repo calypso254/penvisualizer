@@ -85,6 +85,7 @@ function init() {
     animate();
 }
 
+
 function animate() {
     requestAnimationFrame(animate);
     if (isRotating) {
@@ -175,7 +176,7 @@ function applyDecal(imageData) {
                 diameter = topDiameter - (topDiameter - bottomDiameter) * ((height - y) / (height - straightSectionHeight));
             }
 
-            const adjustedU = (u * (diameter / topDiameter)) % 1.0;
+            const adjustedU = (u + 0.5) % 1.0 * (diameter / topDiameter);
             uv.setXY(i, adjustedU, v);
         }
 
