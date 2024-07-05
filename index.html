@@ -267,9 +267,16 @@ const material = new THREE.MeshStandardMaterial({
       applyDecal(data);
     }
 
-    function applyDecal(imageData) {
-    const texture = new THREE.TextureLoader().load(imageData, function(tex) {
+function applyDecal(imageData) {
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(imageData, function(tex) {
         tex.encoding = THREE.sRGBEncoding;
+
+        // Set texture wrapping to clamp to edges to prevent tiling at the edges
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+
+        // Dispose of the old texture if it exists
         if (pen.material.map) {
             pen.material.map.dispose();
         }
@@ -278,32 +285,32 @@ const material = new THREE.MeshStandardMaterial({
         pen.material.needsUpdate = true;
 
         const geometry = pen.geometry;
-const uv = geometry.attributes.uv;
-const position = geometry.attributes.position;
+        const uv = geometry.attributes.uv;
+        const position = geometry.attributes.position;
 
-for (let i = 0; i < uv.count; i++) {
-    const x = position.getX(i);
-    const y = position.getY(i);
-    const z = position.getZ(i);
+        for (let i = 0; i < uv.count; i++) {
+            const x = position.getX(i);
+            const y = position.getY(i);
+            const z = position.getZ(i);
 
-    const angle = Math.atan2(x, z);
-    const u = (angle + Math.PI) / (2 * Math.PI);  // Calculate horizontal UV coordinate based on angle
-    const v = y / 58.6;  // Calculate vertical UV coordinate based on height
+            const angle = Math.atan2(x, z);
+            const u = (angle + Math.PI) / (2 * Math.PI);  // Calculate horizontal UV coordinate based on angle
+            const v = y / 58.6;  // Calculate vertical UV coordinate based on height
 
-    // Adjust to prevent seam
-    const adjustedU = (u + 0.5) % 1.0;  // Adjust U to shift the seam and potentially make it less visible
+            // Adjust to prevent seam
+            const adjustedU = (u + 0.5) % 1.0;  // Adjust U to shift the seam and potentially make it less visible
 
-    uv.setXY(i, adjustedU, v);
-}
+            uv.setXY(i, adjustedU, v);
+        }
 
-uv.needsUpdate = true;  // Flag the UVs to be updated on the GPU
-
+        uv.needsUpdate = true;  // Flag the UVs to be updated on the GPU
 
         // Set the rotation start point to center of the image
         rotationStartPoint = Math.PI;
         pen.rotation.y = rotationStartPoint;
     });
 }
+
 
 
     function clearDecal() {
