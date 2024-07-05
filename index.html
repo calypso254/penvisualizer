@@ -268,15 +268,8 @@ const material = new THREE.MeshStandardMaterial({
     }
 
 function applyDecal(imageData) {
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load(imageData, function(tex) {
+    const texture = new THREE.TextureLoader().load(imageData, function(tex) {
         tex.encoding = THREE.sRGBEncoding;
-
-        // Set texture wrapping to clamp to edges to prevent tiling at the edges
-        tex.wrapS = THREE.ClampToEdgeWrapping;
-        tex.wrapT = THREE.ClampToEdgeWrapping;
-
-        // Dispose of the old texture if it exists
         if (pen.material.map) {
             pen.material.map.dispose();
         }
@@ -294,16 +287,15 @@ function applyDecal(imageData) {
             const z = position.getZ(i);
 
             const angle = Math.atan2(x, z);
-            const u = (angle + Math.PI) / (2 * Math.PI);  // Calculate horizontal UV coordinate based on angle
-            const v = y / 58.6;  // Calculate vertical UV coordinate based on height
+            const u = (angle + Math.PI) / (2 * Math.PI);
+            const v = y / 58.6;
 
             // Adjust to prevent seam
-            const adjustedU = (u + 0.5) % 1.0;  // Adjust U to shift the seam and potentially make it less visible
-
+            const adjustedU = (u + 0.5) % 1.0;
             uv.setXY(i, adjustedU, v);
         }
 
-        uv.needsUpdate = true;  // Flag the UVs to be updated on the GPU
+        uv.needsUpdate = true;
 
         // Set the rotation start point to center of the image
         rotationStartPoint = Math.PI;
