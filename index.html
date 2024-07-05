@@ -286,23 +286,32 @@ function applyDecal(imageData) {
             const y = position.getY(i);
             const z = position.getZ(i);
 
-            const angle = Math.atan2(x, z);
-            const u = (angle + Math.PI) / (2 * Math.PI);
+            // Calculate the angle, but shift it to start from the back
+            let angle = Math.atan2(x, z) + Math.PI;
+            
+            // Ensure angle is within [0, 2π]
+            angle = angle % (2 * Math.PI);
+            
+            // Map angle to U coordinate (0 to 1)
+            let u = angle / (2 * Math.PI);
+            
+            // Apply smoothstep function to create a gradual transition at the seam
+            u = smoothstep(0, 1, u);
+
             const v = y / 58.6;
 
-            // Adjust to prevent seam
-            const adjustedU = (u + 0.5) % 1.0;
-            uv.setXY(i, adjustedU, v);
+            uv.setXY(i, u, v);
         }
 
         uv.needsUpdate = true;
-
-        // Set the rotation start point to center of the image
-        rotationStartPoint = Math.PI;
-        pen.rotation.y = rotationStartPoint;
     });
 }
 
+// Smoothstep function to create a smooth transition
+function smoothstep(min, max, value) {
+    const x = Math.max(0, Math.min(1, (value-min)/(max-min)));
+    return x*x*(3 - 2*x);
+}
 
 
     function clearDecal() {
