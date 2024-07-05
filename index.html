@@ -281,7 +281,6 @@ function applyDecal(imageData) {
         const uv = geometry.attributes.uv;
         const position = geometry.attributes.position;
 
-        const circumference = 31.4;
         const height = 58.6;
 
         for (let i = 0; i < uv.count; i++) {
@@ -289,14 +288,14 @@ function applyDecal(imageData) {
             const y = position.getY(i);
             const z = position.getZ(i);
 
-            // Calculate angle around the pen
-            let angle = Math.atan2(x, z);
+            // Calculate angle around the pen, starting from the front
+            let angle = Math.atan2(x, z) + Math.PI;
             
             // Ensure angle is within [0, 2π]
-            angle = (angle + 2 * Math.PI) % (2 * Math.PI);
+            angle = angle % (2 * Math.PI);
             
-            // Map angle directly to U coordinate
-            let u = angle / (2 * Math.PI);
+            // Map angle to U coordinate, shifting by 0.25 to place seam at the back
+            let u = (angle / (2 * Math.PI) + 0.25) % 1;
             
             // Map height directly to V coordinate
             let v = y / height;
@@ -311,12 +310,6 @@ function applyDecal(imageData) {
         tex.wrapT = THREE.ClampToEdgeWrapping;
         tex.repeat.set(1, 1);
     });
-}
-
-// Smoothstep function to create a smooth transition
-function smoothstep(min, max, value) {
-    const x = Math.max(0, Math.min(1, (value-min)/(max-min)));
-    return x*x*(3 - 2*x);
 }
 
 
