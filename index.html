@@ -186,11 +186,12 @@
       }
 
       const geometry = new THREE.LatheGeometry(points, 64);
-      const material = new THREE.MeshStandardMaterial({ 
-        color: 0xcccccc,
-        metalness: 0.2,
-        roughness: 0.1
-      });
+const material = new THREE.MeshStandardMaterial({
+    color: 0xcccccc,
+    side: THREE.DoubleSide,  // Ensures both sides of the polygons are rendered
+    metalness: 0.2,
+    roughness: 0.1
+});
       pen = new THREE.Mesh(geometry, material);
       scene.add(pen);
 
