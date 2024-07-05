@@ -281,29 +281,35 @@ function applyDecal(imageData) {
         const uv = geometry.attributes.uv;
         const position = geometry.attributes.position;
 
+        const circumference = 31.4;
+        const height = 58.6;
+
         for (let i = 0; i < uv.count; i++) {
             const x = position.getX(i);
             const y = position.getY(i);
             const z = position.getZ(i);
 
-            // Calculate the angle, but shift it to start from the back
-            let angle = Math.atan2(x, z) + Math.PI;
+            // Calculate angle around the pen
+            let angle = Math.atan2(x, z);
             
             // Ensure angle is within [0, 2π]
-            angle = angle % (2 * Math.PI);
+            angle = (angle + 2 * Math.PI) % (2 * Math.PI);
             
-            // Map angle to U coordinate (0 to 1)
+            // Map angle directly to U coordinate
             let u = angle / (2 * Math.PI);
             
-            // Apply smoothstep function to create a gradual transition at the seam
-            u = smoothstep(0, 1, u);
-
-            const v = y / 58.6;
+            // Map height directly to V coordinate
+            let v = y / height;
 
             uv.setXY(i, u, v);
         }
 
         uv.needsUpdate = true;
+
+        // Adjust texture wrapping and repeat
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.repeat.set(1, 1);
     });
 }
 
