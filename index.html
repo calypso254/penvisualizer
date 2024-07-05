@@ -1,4 +1,4 @@
-<html><head>
+<html><head><base href="https://websim.ai/" />
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;">
     <title>PenGems Visualizer - Custom Pen Design</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;">
@@ -186,12 +186,11 @@
       }
 
       const geometry = new THREE.LatheGeometry(points, 64);
-const material = new THREE.MeshStandardMaterial({
-    color: 0xcccccc,
-    side: THREE.DoubleSide,  // Ensures both sides of the polygons are rendered
-    metalness: 0.2,
-    roughness: 0.1
-});
+      const material = new THREE.MeshStandardMaterial({ 
+        color: 0xcccccc,
+        metalness: 0.2,
+        roughness: 0.1
+      });
       pen = new THREE.Mesh(geometry, material);
       scene.add(pen);
 
@@ -267,7 +266,7 @@ const material = new THREE.MeshStandardMaterial({
       applyDecal(data);
     }
 
-function applyDecal(imageData) {
+    function applyDecal(imageData) {
     const texture = new THREE.TextureLoader().load(imageData, function(tex) {
         tex.encoding = THREE.sRGBEncoding;
         if (pen.material.map) {
@@ -281,34 +280,25 @@ function applyDecal(imageData) {
         const uv = geometry.attributes.uv;
         const position = geometry.attributes.position;
 
-        const height = 58.6;
-
         for (let i = 0; i < uv.count; i++) {
             const x = position.getX(i);
             const y = position.getY(i);
             const z = position.getZ(i);
 
-            // Calculate angle around the pen, starting from the front
-            let angle = Math.atan2(x, z) + Math.PI;
-            
-            // Ensure angle is within [0, 2π]
-            angle = angle % (2 * Math.PI);
-            
-            // Map angle to U coordinate, shifting by 0.25 to place seam at the back
-            let u = (angle / (2 * Math.PI) + 0.25) % 1;
-            
-            // Map height directly to V coordinate
-            let v = y / height;
+            const angle = Math.atan2(x, z);
+            const u = (angle + Math.PI) / (2 * Math.PI);
+            const v = y / 58.6;
 
-            uv.setXY(i, u, v);
+            // Adjust to prevent seam
+            const adjustedU = (u + 0.5) % 1.0;
+            uv.setXY(i, adjustedU, v);
         }
 
         uv.needsUpdate = true;
 
-        // Adjust texture wrapping and repeat
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.ClampToEdgeWrapping;
-        tex.repeat.set(1, 1);
+        // Set the rotation start point to center of the image
+        rotationStartPoint = Math.PI;
+        pen.rotation.y = rotationStartPoint;
     });
 }
 
@@ -392,19 +382,18 @@ function applyDecal(imageData) {
       saveAs(blob, 'pengems_design.stl');
     }
 
-function toggleRotation() {
-    isRotating = !isRotating;
-    const rotateBtn = document.getElementById('rotate-btn');
-    if (isRotating) {
+    function toggleRotation() {
+      isRotating = !isRotating;
+      const rotateBtn = document.getElementById('rotate-btn');
+      if (isRotating) {
         rotateBtn.textContent = 'Stop Rotation';
         rotateBtn.classList.add('active');
-    } else {
+      } else {
         rotateBtn.textContent = 'Start Rotation';
         rotateBtn.classList.remove('active');
-        // Do not reset pen.rotation.y here
+        pen.rotation.y = rotationStartPoint;
+      }
     }
-}
-
 
     function toggleTexture() {
       isTextured = !isTextured;
