@@ -147,52 +147,48 @@
     let directionalLight, ambientLight;
     let rotationStartPoint = 0;
 
-    function init() {
-      scene = new THREE.Scene();
-      camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(450, 800);
-      renderer.setClearColor(0x808080);  // Solid gray background
-      renderer.outputEncoding = THREE.sRGBEncoding;
-      document.getElementById('canvas-container').appendChild(renderer.domElement);
+function createPenGeometry() {
+    const points = [];
+    const topRadius = 5; // 10mm diameter
+    const bottomRadius = 4; // 8mm diameter
+    const totalHeight = 58.6;
+    const straightHeight = 35;
+    const curveHeight = totalHeight - straightHeight;
 
-      const points = [];
-      const topRadius = 5; // 10mm diameter
-      const bottomRadius = 4; // 8mm diameter
-      const totalHeight = 58.6;
-      const straightHeight = 35;
-      const curveHeight = totalHeight - straightHeight;
+    // Start at the bottom center
+    points.push(new THREE.Vector2(0, 0));
 
-      // Top circle
-      for (let i = 0; i <= 20; i++) {
-        points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * topRadius, totalHeight));
-      }
-      
-      // Straight section
-      points.push(new THREE.Vector2(topRadius, totalHeight));
-      points.push(new THREE.Vector2(topRadius, curveHeight));
-      
-      // Curved section
-      for (let i = 1; i <= 20; i++) {
-        const t = i / 20;
-        const radius = topRadius + (bottomRadius - topRadius) * t;
-        const y = curveHeight * (1 - t);
-        points.push(new THREE.Vector2(radius, y));
-      }
-      
-      // Bottom circle
-      for (let i = 20; i >= 0; i--) {
+    // Bottom circle
+    for (let i = 0; i <= 20; i++) {
         points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * bottomRadius, 0));
-      }
+    }
 
-      const geometry = new THREE.LatheGeometry(points, 64);
-      const material = new THREE.MeshStandardMaterial({ 
-        color: 0xcccccc,
-        metalness: 0.2,
-        roughness: 0.1
-      });
-      pen = new THREE.Mesh(geometry, material);
-      scene.add(pen);
+    // Curved section
+    for (let i = 1; i <= 20; i++) {
+        const t = i / 20;
+        const radius = bottomRadius + (topRadius - bottomRadius) * t;
+        const y = curveHeight * t;
+        points.push(new THREE.Vector2(radius, y));
+    }
+
+    // Straight section
+    points.push(new THREE.Vector2(topRadius, curveHeight));
+    points.push(new THREE.Vector2(topRadius, totalHeight));
+
+    // Top circle
+    for (let i = 20; i >= 0; i--) {
+        points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * topRadius, totalHeight));
+    }
+
+    // End at the top center
+    points.push(new THREE.Vector2(0, totalHeight));
+
+    return new THREE.LatheGeometry(points, 64);
+}
+
+const geometry = createPenGeometry();
+pen = new THREE.Mesh(geometry, material);
+scene.add(pen);
 
       ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
