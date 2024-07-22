@@ -385,9 +385,9 @@ function exportGIF() {
         images: frames,
         gifWidth: 450,
         gifHeight: 800,
-        interval: 0.5,
+        interval: 0.1,
         numFrames: 8,
-        loop: 0
+        loop: 0  // Disable looping
     }, function (obj) {
         if (!obj.error) {
             const image = obj.image;
