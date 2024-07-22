@@ -388,9 +388,8 @@ function exportGIF() {
         interval: 0.5,
         numFrames: 8,
         gifshotSettings: {
-        loop: false, // Ensure loop is set to false
-        }
-        , function (obj) {
+        loop: 1 // Ensure loop is set to 1 (loop once)
+    }, function (obj) {
         if (!obj.error) {
             const image = obj.image;
             const a = document.createElement('a');
