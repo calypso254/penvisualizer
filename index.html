@@ -218,19 +218,20 @@
         animate();
     }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        if (isRotating) {
-            if (pen) {
-                pen.rotation.y += 0.01;
-            }
-        }
-        renderer.render(scene, camera);
-
-        if (isExporting) {
-            capturer.capture(renderer.domElement);
+   function animate() {
+    requestAnimationFrame(animate);
+    if (isRotating) {
+        if (pen) {
+            pen.rotation.y += 0.01;
         }
     }
+    renderer.render(scene, camera);
+
+    if (isExporting) {
+        capturer.capture(renderer.domElement);
+    }
+}
+
 function handleFileUpload(event) {
     const file = event.target.files[0];
     const reader = new FileReader();
@@ -303,79 +304,90 @@ function applyDecal(imageData) {
     });
 }
 
-    function exportMP4() {
-        if (typeof CCapture === 'undefined') {
-            console.error('CCapture is not loaded. Please check your internet connection and try again.');
-            alert('Unable to start video capture. Please check your internet connection and try again.');
-            return;
-        }
+function clearDecal() {
+    if (pen.material.map) {
+        pen.material.map.dispose();
+        pen.material.map = null;
+        pen.material.needsUpdate = true;
+    }
+    rotationStartPoint = 0;
+    pen.rotation.y = rotationStartPoint;
+}
 
-        capturer = new CCapture({
-            format: 'webm',
-            framerate: 60,
-            verbose: true,
-            name: 'pengems_design',
-            quality: 100
-        });
-
-        isRotating = true;
-        isExporting = true;
-        capturer.start();
-
-        setTimeout(() => {
-            isRotating = false;
-            isExporting = false;
-            capturer.stop();
-            capturer.save((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'pengems_design.webm';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            });
-        }, 10000);  // Export 10 seconds of animation for a full 360-degree rotation
+function exportMP4() {
+    if (typeof CCapture === 'undefined') {
+        console.error('CCapture is not loaded. Please check your internet connection and try again.');
+        alert('Unable to start video capture. Please check your internet connection and try again.');
+        return;
     }
 
-    function exportGIF() {
-        if (typeof gifshot === 'undefined') {
-            console.error('gifshot is not loaded. Please check your internet connection and try again.');
-            alert('Unable to start GIF capture. Please check your internet connection and try again.');
-            return;
-        }
+    capturer = new CCapture({
+        format: 'webm',
+        framerate: 60,
+        verbose: true,
+        name: 'pengems_design',
+        quality: 100
+    });
 
-        let frames = [];
-        const originalRotation = pen.rotation.y;
+    isRotating = true;
+    isExporting = true;
+    capturer.start();
 
-        for (let i = 0; i < 8; i++) {
-            pen.rotation.y = originalRotation + (i * (Math.PI / 4));  // 8 frames for 360 degrees
-            renderer.render(scene, camera);
-            frames.push(renderer.domElement.toDataURL('image/png'));
-        }
-
-        pen.rotation.y = originalRotation;  // Restore original rotation
-
-        gifshot.createGIF({
-            images: frames,
-            gifWidth: 450,
-            gifHeight: 800,
-            interval: 0.1,
-            numFrames: 8
-        }, function (obj) {
-            if (!obj.error) {
-                const image = obj.image;
-                const a = document.createElement('a');
-                a.href = image;
-                a.download = 'pengems_design.gif';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } else {
-                console.error('GIF creation failed:', obj.error);
-            }
+    setTimeout(() => {
+        isRotating = false;
+        isExporting = false;
+        capturer.stop();
+        capturer.save((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pengems_design.webm';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         });
+    }, 20000);  // Export 20 seconds of animation for a full 360-degree rotation
+}
+
+function exportGIF() {
+    if (typeof gifshot === 'undefined') {
+        console.error('gifshot is not loaded. Please check your internet connection and try again.');
+        alert('Unable to start GIF capture. Please check your internet connection and try again.');
+        return;
     }
+
+    let frames = [];
+    const originalRotation = pen.rotation.y;
+
+    for (let i = 0; i < 8; i++) {
+        pen.rotation.y = originalRotation + (i * (Math.PI / 4));  // 8 frames for 360 degrees
+        renderer.render(scene, camera);
+        frames.push(renderer.domElement.toDataURL('image/png'));
+    }
+
+    pen.rotation.y = originalRotation;  // Restore original rotation
+
+    gifshot.createGIF({
+        images: frames,
+        gifWidth: 450,
+        gifHeight: 800,
+        interval: 0.1,
+        numFrames: 8
+    }, function (obj) {
+        if (!obj.error) {
+            const image = obj.image;
+            const a = document.createElement('a');
+            a.href = image;
+            a.download = 'pengems_design.gif';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            console.error('GIF creation failed:', obj.error);
+        }
+    });
+}
+
 
     function toggleRotation() {
         isRotating = !isRotating;
