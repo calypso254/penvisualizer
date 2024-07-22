@@ -12,7 +12,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="scripts/webm-writer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
-<style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
+
+    <style>
   body {
     font-family: 'Roboto', Arial, sans-serif;
     margin: 0;
@@ -133,6 +135,7 @@
             <button id="export-jpg-btn" class="btn">Export JPG</button>
             <button id="export-mp4-btn" class="btn">Export MP4</button>
             <button id="export-stl-btn" class="btn">Export STL</button>
+            <button id="export-gif-btn" class="btn">Export GIF</button>
         </div>
         <div class="specs">
             <p><strong>Height:</strong> 58.6mm</p>
@@ -143,287 +146,225 @@
     </div>
 
     <script>
-        let scene, camera, renderer, pen;
-        let isExporting = false;
-        let capturer;
-        let isRotating = false;
-        let isTextured = false;
-        let directionalLight, ambientLight;
-        let rotationStartPoint = 0;
+    let scene, camera, renderer, pen;
+    let isExporting = false;
+    let capturer;
+    let isRotating = false;
+    let isTextured = false;
+    let directionalLight, ambientLight;
+    let rotationStartPoint = 0;
 
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(450, 800);
-            renderer.setClearColor(0x808080);
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(450, 800);
+        renderer.setClearColor(0x808080);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            const points = [];
-            const topRadius = 5;
-            const bottomRadius = 4;
-            const totalHeight = 58.6;
-            const straightHeight = 35;
-            const curveHeight = totalHeight - straightHeight;
+        const points = [];
+        const topRadius = 5;
+        const bottomRadius = 4;
+        const totalHeight = 58.6;
+        const straightHeight = 35;
+        const curveHeight = totalHeight - straightHeight;
 
-            // Top circle
-            for (let i = 0; i <= 20; i++) {
-                points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * topRadius, totalHeight));
+        // Top circle
+        for (let i = 0; i <= 20; i++) {
+            points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * topRadius, totalHeight));
+        }
+        
+        // Straight section
+        points.push(new THREE.Vector2(topRadius, totalHeight));
+        points.push(new THREE.Vector2(topRadius, curveHeight));
+        
+        // Curved section
+        for (let i = 1; i <= 20; i++) {
+            const t = i / 20;
+            const radius = topRadius + (bottomRadius - topRadius) * t;
+            const y = curveHeight * (1 - t);
+            points.push(new THREE.Vector2(radius, y));
+        }
+        
+        // Bottom circle
+        for (let i = 20; i >= 0; i--) {
+            points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * bottomRadius, 0));
+        }
+
+        const geometry = new THREE.LatheGeometry(points, 128);  // Increased segments to 128
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0xcccccc,
+            metalness: 0.2,
+            roughness: 0.1
+        });
+        pen = new THREE.Mesh(geometry, material);
+        scene.add(pen);
+
+        ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight.position.set(-1, -1, 1);
+        scene.add(fillLight);
+
+        camera.position.set(0, 29.3, 100);
+        camera.lookAt(0, 29.3, 0);
+
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (isRotating) {
+            if (pen) {
+                pen.rotation.y += 0.01;
             }
-            
-            // Straight section
-            points.push(new THREE.Vector2(topRadius, totalHeight));
-            points.push(new THREE.Vector2(topRadius, curveHeight));
-            
-            // Curved section
-            for (let i = 1; i <= 20; i++) {
-                const t = i / 20;
-                const radius = topRadius + (bottomRadius - topRadius) * t;
-                const y = curveHeight * (1 - t);
-                points.push(new THREE.Vector2(radius, y));
-            }
-            
-            // Bottom circle
-            for (let i = 20; i >= 0; i--) {
-                points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * bottomRadius, 0));
-            }
+        }
+        renderer.render(scene, camera);
 
-            const geometry = new THREE.LatheGeometry(points, 128);  // Increased segments to 128
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0xcccccc,
-                metalness: 0.2,
-                roughness: 0.1
+        if (isExporting) {
+            capturer.capture(renderer.domElement);
+        }
+    }
+
+    function exportMP4() {
+        if (typeof CCapture === 'undefined') {
+            console.error('CCapture is not loaded. Please check your internet connection and try again.');
+            alert('Unable to start video capture. Please check your internet connection and try again.');
+            return;
+        }
+
+        capturer = new CCapture({
+            format: 'webm',
+            framerate: 60,
+            verbose: true,
+            name: 'pengems_design',
+            quality: 100
+        });
+
+        isRotating = true;
+        isExporting = true;
+        capturer.start();
+
+        setTimeout(() => {
+            isRotating = false;
+            isExporting = false;
+            capturer.stop();
+            capturer.save((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pengems_design.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             });
-            pen = new THREE.Mesh(geometry, material);
-            scene.add(pen);
+        }, 10000);  // Export 10 seconds of animation for a full 360-degree rotation
+    }
 
-            ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-
-            directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(1, 1, 1);
-            scene.add(directionalLight);
-
-            const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-            fillLight.position.set(-1, -1, 1);
-            scene.add(fillLight);
-
-            camera.position.set(0, 29.3, 100);
-            camera.lookAt(0, 29.3, 0);
-
-            animate();
+    function exportGIF() {
+        if (typeof gifshot === 'undefined') {
+            console.error('gifshot is not loaded. Please check your internet connection and try again.');
+            alert('Unable to start GIF capture. Please check your internet connection and try again.');
+            return;
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if (isRotating) {
-                if (pen) {
-                    pen.rotation.y += 0.01;
-                }
-            }
+        let frames = [];
+        const originalRotation = pen.rotation.y;
+
+        for (let i = 0; i < 8; i++) {
+            pen.rotation.y = originalRotation + (i * (Math.PI / 4));  // 8 frames for 360 degrees
             renderer.render(scene, camera);
-
-            if (isExporting) {
-                capturer.capture(renderer.domElement);
-            }
+            frames.push(renderer.domElement.toDataURL('image/png'));
         }
 
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
+        pen.rotation.y = originalRotation;  // Restore original rotation
 
-            reader.onload = function(e) {
-                const fileExtension = file.name.split('.').pop().toLowerCase();
-                if (fileExtension === 'svg' || fileExtension === 'ai') {
-                    handleVectorImage(e.target.result);
-                } else {
-                    handleRasterImage(e.target.result);
-                }
-            }
-
-            reader.readAsDataURL(file);
-        }
-
-        function handleVectorImage(data) {
-            const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            tempSvg.innerHTML = data;
-            document.body.appendChild(tempSvg);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 1024;
-            const ctx = canvas.getContext('2d');
-            const svgData = new XMLSerializer().serializeToString(tempSvg);
-            const img = new Image();
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0, 1024, 1024);
-                document.body.removeChild(tempSvg);
-                applyDecal(canvas.toDataURL());
-            }
-            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-        }
-
-        function handleRasterImage(data) {
-            applyDecal(data);
-        }
-
-        function applyDecal(imageData) {
-            const texture = new THREE.TextureLoader().load(imageData, function(tex) {
-                tex.encoding = THREE.sRGBEncoding;
-                if (pen.material.map) {
-                    pen.material.map.dispose();
-                }
-
-                pen.material.map = tex;
-                pen.material.needsUpdate = true;
-
-                const geometry = pen.geometry;
-                const uv = geometry.attributes.uv;
-                const position = geometry.attributes.position;
-
-                for (let i = 0; i < uv.count; i++) {
-                    const x = position.getX(i);
-                    const y = position.getY(i);
-                    const z = position.getZ(i);
-
-                    const angle = Math.atan2(x, z);
-                    const u = (angle + Math.PI) / (2 * Math.PI);
-                    const v = y / 58.6;
-
-                    uv.setXY(i, u, v);
-                }
-
-                uv.needsUpdate = true;
-
-                rotationStartPoint = Math.PI;
-                pen.rotation.y = rotationStartPoint;
-            });
-        }
-
-        function clearDecal() {
-            if (pen.material.map) {
-                pen.material.map.dispose();
-                pen.material.map = null;
-                pen.material.needsUpdate = true;
-            }
-            rotationStartPoint = 0;
-            pen.rotation.y = rotationStartPoint;
-        }
-
-        function exportMP4() {
-            if (typeof CCapture === 'undefined') {
-                console.error('CCapture is not loaded. Please check your internet connection and try again.');
-                alert('Unable to start video capture. Please check your internet connection and try again.');
-                return;
-            }
-
-            capturer = new CCapture({
-                format: 'webm',
-                framerate: 60,
-                verbose: true,
-                name: 'pengems_design',
-                quality: 100
-            });
-
-            isRotating = true;
-            isExporting = true;
-            capturer.start();
-
-            setTimeout(() => {
-                isRotating = false;
-                isExporting = false;
-                capturer.stop();
-                capturer.save((blob) => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'pengems_design.webm';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                });
-            }, 5000);  // Export 5 seconds of animation
-        }
-
-        function exportPNG() {
-            renderer.render(scene, camera);
-            renderer.domElement.toBlob((blob) => {
-                saveAs(blob, 'pengems_design.png');
-            }, 'image/png');
-        }
-
-        function exportJPG() {
-            renderer.render(scene, camera);
-            renderer.domElement.toBlob((blob) => {
-                saveAs(blob, 'pengems_design.jpg');
-            }, 'image/jpeg');
-        }
-
-        function exportSTL() {
-            const exporter = new THREE.STLExporter();
-            const stlString = exporter.parse(scene);
-            const blob = new Blob([stlString], {type: 'text/plain'});
-            saveAs(blob, 'pengems_design.stl');
-        }
-
-        function toggleRotation() {
-            isRotating = !isRotating;
-            const rotateBtn = document.getElementById('rotate-btn');
-            if (isRotating) {
-                rotateBtn.textContent = 'Stop Rotation';
-                rotateBtn.classList.add('active');
+        gifshot.createGIF({
+            images: frames,
+            gifWidth: 450,
+            gifHeight: 800,
+            interval: 0.1,
+            numFrames: 8
+        }, function (obj) {
+            if (!obj.error) {
+                const image = obj.image;
+                const a = document.createElement('a');
+                a.href = image;
+                a.download = 'pengems_design.gif';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             } else {
-                rotateBtn.textContent = 'Start Rotation';
-                rotateBtn.classList.remove('active');
-            }
-        }
-
-        function toggleTexture() {
-            isTextured = !isTextured;
-            const textureBtn = document.getElementById('texture-btn');
-            if (isTextured) {
-                textureBtn.textContent = 'Remove Texture';
-                textureBtn.classList.add('active');
-                if (pen.material.map) {
-                    pen.material.bumpMap = pen.material.map;
-                    pen.material.bumpScale = 0.1;
-                    pen.material.needsUpdate = true;
-                }
-            } else {
-                textureBtn.textContent = 'Add Texture';
-                textureBtn.classList.remove('active');
-                pen.material.bumpMap = null;
-                pen.material.bumpScale = 0;
-                pen.material.needsUpdate = true;
-            }
-        }
-
-        function adjustBrightness(event) {
-            const brightness = parseFloat(event.target.value);
-            directionalLight.intensity = brightness;
-            ambientLight.intensity = brightness * 0.6;
-        }
-
-        init();
-
-        document.getElementById('file-input').addEventListener('change', handleFileUpload);
-        document.getElementById('clear-btn').addEventListener('click', clearDecal);
-        document.getElementById('export-mp4-btn').addEventListener('click', exportMP4);
-        document.getElementById('export-png-btn').addEventListener('click', exportPNG);
-        document.getElementById('export-jpg-btn').addEventListener('click', exportJPG);
-        document.getElementById('export-stl-btn').addEventListener('click', exportSTL);
-        document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
-        document.getElementById('texture-btn').addEventListener('click', toggleTexture);
-        document.getElementById('brightness-slider').addEventListener('input', adjustBrightness);
-
-        window.addEventListener('load', function() {
-            if (typeof CCapture === 'undefined') {
-                console.warn('CCapture is not loaded. Video export may not work.');
-            } else {
-                console.log('CCapture is loaded and ready.');
+                console.error('GIF creation failed:', obj.error);
             }
         });
-    </script>
+    }
+
+    function toggleRotation() {
+        isRotating = !isRotating;
+        const rotateBtn = document.getElementById('rotate-btn');
+        if (isRotating) {
+            rotateBtn.textContent = 'Stop Rotation';
+            rotateBtn.classList.add('active');
+        } else {
+            rotateBtn.textContent = 'Start Rotation';
+            rotateBtn.classList.remove('active');
+        }
+    }
+
+    function toggleTexture() {
+        isTextured = !isTextured;
+        const textureBtn = document.getElementById('texture-btn');
+        if (isTextured) {
+            textureBtn.textContent = 'Remove Texture';
+            textureBtn.classList.add('active');
+            if (pen.material.map) {
+                pen.material.bumpMap = pen.material.map;
+                pen.material.bumpScale = 0.1;
+                pen.material.needsUpdate = true;
+            }
+        } else {
+            textureBtn.textContent = 'Add Texture';
+            textureBtn.classList.remove('active');
+            pen.material.bumpMap = null;
+            pen.material.bumpScale = 0;
+            pen.material.needsUpdate = true;
+        }
+    }
+
+    function adjustBrightness(event) {
+        const brightness = parseFloat(event.target.value);
+        directionalLight.intensity = brightness;
+        ambientLight.intensity = brightness * 0.6;
+    }
+
+    init();
+
+    document.getElementById('file-input').addEventListener('change', handleFileUpload);
+    document.getElementById('clear-btn').addEventListener('click', clearDecal);
+    document.getElementById('export-mp4-btn').addEventListener('click', exportMP4);
+    document.getElementById('export-png-btn').addEventListener('click', exportPNG);
+    document.getElementById('export-jpg-btn').addEventListener('click', exportJPG);
+    document.getElementById('export-stl-btn').addEventListener('click', exportSTL);
+    document.getElementById('export-gif-btn').addEventListener('click', exportGIF);
+    document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
+    document.getElementById('texture-btn').addEventListener('click', toggleTexture);
+    document.getElementById('brightness-slider').addEventListener('input', adjustBrightness);
+
+    window.addEventListener('load', function() {
+        if (typeof CCapture === 'undefined') {
+            console.warn('CCapture is not loaded. Video export may not work.');
+        } else {
+            console.log('CCapture is loaded and ready.');
+        }
+    });
+</script>
+
 </body>
 </html>
