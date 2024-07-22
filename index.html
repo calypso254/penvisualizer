@@ -13,8 +13,6 @@
     <script src="scripts/webm-writer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gif.js.optimized@0.2.0/gif.js"></script>
-
 
     <style>
   body {
@@ -137,7 +135,7 @@
             <button id="export-jpg-btn" class="btn">Export JPG</button>
             <button id="export-mp4-btn" class="btn">Export MP4</button>
             <button id="export-stl-btn" class="btn">Export STL</button>
-            <button id="export--btn" class="btn">Export GIF</button>
+            <button id="export-gif-btn" class="btn">Export GIF</button>
         </div>
         <div class="specs">
             <p><strong>Height:</strong> 58.6mm</p>
@@ -366,37 +364,44 @@ function exportMP4() {
 }
 
 function exportGIF() {
-    const gif = new GIF({
-        workers: 2,
-        quality: 10,
-        width: 450,
-        height: 800,
-        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js.optimized@0.2.0/gif.worker.js'
-    });
+    if (typeof gifshot === 'undefined') {
+        console.error('gifshot is not loaded. Please check your internet connection and try again.');
+        alert('Unable to start GIF capture. Please check your internet connection and try again.');
+        return;
+    }
 
+    let frames = [];
     const originalRotation = pen.rotation.y;
 
     for (let i = 0; i < 8; i++) {
         pen.rotation.y = originalRotation + (i * (Math.PI / 4));  // 8 frames for 360 degrees
         renderer.render(scene, camera);
-        gif.addFrame(renderer.domElement, { copy: true, delay: 500 });
+        frames.push(renderer.domElement.toDataURL('image/png'));
     }
 
     pen.rotation.y = originalRotation;  // Restore original rotation
 
-    gif.on('finished', function(blob) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'pengems_design.gif';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    gifshot.createGIF({
+        images: frames,
+        gifWidth: 450,
+        gifHeight: 800,
+        interval: 0.5,
+        numFrames: 8,
+        loop: 0  // Disable looping
+    }, function (obj) {
+        if (!obj.error) {
+            const image = obj.image;
+            const a = document.createElement('a');
+            a.href = image;
+            a.download = 'pengems_design.gif';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            console.error('GIF creation failed:', obj.error);
+        }
     });
-
-    gif.render();
 }
-
 
 function toggleRotation() {
     isRotating = !isRotating;
