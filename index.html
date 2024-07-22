@@ -313,6 +313,12 @@ function clearDecal() {
     rotationStartPoint = 0;
     pen.rotation.y = rotationStartPoint;
 }
+function exportPNG() {
+    renderer.render(scene, camera);
+    renderer.domElement.toBlob((blob) => {
+        saveAs(blob, 'pengems_design.png');
+    }, 'image/png');
+}
 
 function exportMP4() {
     if (typeof CCapture === 'undefined') {
