@@ -218,7 +218,7 @@
         animate();
     }
 
-   function animate() {
+ function animate() {
     requestAnimationFrame(animate);
     if (isRotating) {
         if (pen) {
@@ -313,11 +313,19 @@ function clearDecal() {
     rotationStartPoint = 0;
     pen.rotation.y = rotationStartPoint;
 }
+
 function exportPNG() {
     renderer.render(scene, camera);
     renderer.domElement.toBlob((blob) => {
         saveAs(blob, 'pengems_design.png');
     }, 'image/png');
+}
+
+function exportJPG() {
+    renderer.render(scene, camera);
+    renderer.domElement.toBlob((blob) => {
+        saveAs(blob, 'pengems_design.jpg');
+    }, 'image/jpeg');
 }
 
 function exportMP4() {
@@ -394,65 +402,64 @@ function exportGIF() {
     });
 }
 
-
-    function toggleRotation() {
-        isRotating = !isRotating;
-        const rotateBtn = document.getElementById('rotate-btn');
-        if (isRotating) {
-            rotateBtn.textContent = 'Stop Rotation';
-            rotateBtn.classList.add('active');
-        } else {
-            rotateBtn.textContent = 'Start Rotation';
-            rotateBtn.classList.remove('active');
-        }
+function toggleRotation() {
+    isRotating = !isRotating;
+    const rotateBtn = document.getElementById('rotate-btn');
+    if (isRotating) {
+        rotateBtn.textContent = 'Stop Rotation';
+        rotateBtn.classList.add('active');
+    } else {
+        rotateBtn.textContent = 'Start Rotation';
+        rotateBtn.classList.remove('active');
     }
+}
 
-    function toggleTexture() {
-        isTextured = !isTextured;
-        const textureBtn = document.getElementById('texture-btn');
-        if (isTextured) {
-            textureBtn.textContent = 'Remove Texture';
-            textureBtn.classList.add('active');
-            if (pen.material.map) {
-                pen.material.bumpMap = pen.material.map;
-                pen.material.bumpScale = 0.1;
-                pen.material.needsUpdate = true;
-            }
-        } else {
-            textureBtn.textContent = 'Add Texture';
-            textureBtn.classList.remove('active');
-            pen.material.bumpMap = null;
-            pen.material.bumpScale = 0;
+function toggleTexture() {
+    isTextured = !isTextured;
+    const textureBtn = document.getElementById('texture-btn');
+    if (isTextured) {
+        textureBtn.textContent = 'Remove Texture';
+        textureBtn.classList.add('active');
+        if (pen.material.map) {
+            pen.material.bumpMap = pen.material.map;
+            pen.material.bumpScale = 0.1;
             pen.material.needsUpdate = true;
         }
+    } else {
+        textureBtn.textContent = 'Add Texture';
+        textureBtn.classList.remove('active');
+        pen.material.bumpMap = null;
+        pen.material.bumpScale = 0;
+        pen.material.needsUpdate = true;
     }
+}
 
-    function adjustBrightness(event) {
-        const brightness = parseFloat(event.target.value);
-        directionalLight.intensity = brightness;
-        ambientLight.intensity = brightness * 0.6;
+function adjustBrightness(event) {
+    const brightness = parseFloat(event.target.value);
+    directionalLight.intensity = brightness;
+    ambientLight.intensity = brightness * 0.6;
+}
+
+init();
+
+document.getElementById('file-input').addEventListener('change', handleFileUpload);
+document.getElementById('clear-btn').addEventListener('click', clearDecal);
+document.getElementById('export-png-btn').addEventListener('click', exportPNG);
+document.getElementById('export-jpg-btn').addEventListener('click', exportJPG);
+document.getElementById('export-mp4-btn').addEventListener('click', exportMP4);
+document.getElementById('export-gif-btn').addEventListener('click', exportGIF);
+document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
+document.getElementById('texture-btn').addEventListener('click', toggleTexture);
+document.getElementById('brightness-slider').addEventListener('input', adjustBrightness);
+
+window.addEventListener('load', function() {
+    if (typeof CCapture === 'undefined') {
+        console.warn('CCapture is not loaded. Video export may not work.');
+    } else {
+        console.log('CCapture is loaded and ready.');
     }
+});
 
-    init();
-
-    document.getElementById('file-input').addEventListener('change', handleFileUpload);
-    document.getElementById('clear-btn').addEventListener('click', clearDecal);
-    document.getElementById('export-mp4-btn').addEventListener('click', exportMP4);
-    document.getElementById('export-png-btn').addEventListener('click', exportPNG);
-    document.getElementById('export-jpg-btn').addEventListener('click', exportJPG);
-    document.getElementById('export-stl-btn').addEventListener('click', exportSTL);
-    document.getElementById('export-gif-btn').addEventListener('click', exportGIF);
-    document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
-    document.getElementById('texture-btn').addEventListener('click', toggleTexture);
-    document.getElementById('brightness-slider').addEventListener('input', adjustBrightness);
-
-    window.addEventListener('load', function() {
-        if (typeof CCapture === 'undefined') {
-            console.warn('CCapture is not loaded. Video export may not work.');
-        } else {
-            console.log('CCapture is loaded and ready.');
-        }
-    });
 </script>
 
 </body>
