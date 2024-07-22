@@ -231,6 +231,77 @@
             capturer.capture(renderer.domElement);
         }
     }
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        if (fileExtension === 'svg' || fileExtension === 'ai') {
+            handleVectorImage(e.target.result);
+        } else {
+            handleRasterImage(e.target.result);
+        }
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function handleVectorImage(data) {
+    const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    tempSvg.innerHTML = data;
+    document.body.appendChild(tempSvg);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+    const svgData = new XMLSerializer().serializeToString(tempSvg);
+    const img = new Image();
+    img.onload = function() {
+        ctx.drawImage(img, 0, 0, 1024, 1024);
+        document.body.removeChild(tempSvg);
+        applyDecal(canvas.toDataURL());
+    }
+    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+}
+
+function handleRasterImage(data) {
+    applyDecal(data);
+}
+
+function applyDecal(imageData) {
+    const texture = new THREE.TextureLoader().load(imageData, function(tex) {
+        tex.encoding = THREE.sRGBEncoding;
+        if (pen.material.map) {
+            pen.material.map.dispose();
+        }
+
+        pen.material.map = tex;
+        pen.material.needsUpdate = true;
+
+        const geometry = pen.geometry;
+        const uv = geometry.attributes.uv;
+        const position = geometry.attributes.position;
+
+        for (let i = 0; i < uv.count; i++) {
+            const x = position.getX(i);
+            const y = position.getY(i);
+            const z = position.getZ(i);
+
+            const angle = Math.atan2(x, z);
+            const u = (angle + Math.PI) / (2 * Math.PI);
+            const v = y / 58.6;
+
+            uv.setXY(i, u, v);
+        }
+
+        uv.needsUpdate = true;
+
+        rotationStartPoint = Math.PI;
+        pen.rotation.y = rotationStartPoint;
+    });
+}
 
     function exportMP4() {
         if (typeof CCapture === 'undefined') {
