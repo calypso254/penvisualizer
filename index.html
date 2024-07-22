@@ -291,7 +291,7 @@ function applyDecal(imageData) {
             const z = position.getZ(i);
 
             const angle = Math.atan2(x, z);
-            const u = 1 - (angle + Math.PI) / (2 * Math.PI); // Adjust the U coordinate for non-mirrored texture
+            const u = (angle + Math.PI) / (2 * Math.PI);
             const v = y / 58.6;
 
             uv.setXY(i, u, v);
@@ -303,7 +303,6 @@ function applyDecal(imageData) {
         pen.rotation.y = rotationStartPoint;
     });
 }
-
 
 function clearDecal() {
     if (pen.material.map) {
@@ -388,8 +387,7 @@ function exportGIF() {
         gifHeight: 800,
         interval: 0.5,
         numFrames: 8,
-        gifshotSettings: {
-        loop: 1 // Ensure loop is set to 1 (loop once)
+        loop: 0  // Disable looping
     }, function (obj) {
         if (!obj.error) {
             const image = obj.image;
