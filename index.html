@@ -294,7 +294,7 @@ function applyDecal(imageData) {
             const u = (angle + Math.PI) / (2 * Math.PI);
             const v = y / 58.6;
 
-            uv.setXY(i, u, v);
+            uv.setXY(i, 1 - u, v);
         }
 
         uv.needsUpdate = true;
