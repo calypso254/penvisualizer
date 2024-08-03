@@ -48,7 +48,7 @@
     border-radius: 10px;
     overflow: hidden;
     /* background-color: #f0f0f0; */
-    background-image: url('/visualizerbackground.png;);
+    background-image: url('/visualizerbackground.png;');
     background-size: cover; 
     background-repeat: no-repeat;
     background-position: center; 
@@ -222,13 +222,7 @@
         animate();
     }
 
-function setBackgroundImage() {
-    document.getElementById('canvas-container').style.backgroundImage = "url('https://raw.githubusercontent.com/calypso254/penvisualizer/main/visualizerbackground.png')";
-    document.getElementById('canvas-container').style.backgroundSize = "cover"; // Adjust as needed
-    document.getElementById('canvas-container').style.backgroundRepeat = "no-repeat"; // Adjust as needed
-    document.getElementById('canvas-container').style.backgroundPosition = "center"; // Adjust as needed
-}
-        
+       
  function animate() {
     requestAnimationFrame(animate);
     if (isRotating) {
