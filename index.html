@@ -221,6 +221,13 @@
         animate();
     }
 
+function setBackgroundImage() {
+    document.getElementById('canvas-container').style.backgroundImage = "url('https://raw.githubusercontent.com/calypso254/penvisualizer/main/visualizerbackground.png')";
+    document.getElementById('canvas-container').style.backgroundSize = "cover"; // Adjust as needed
+    document.getElementById('canvas-container').style.backgroundRepeat = "no-repeat"; // Adjust as needed
+    document.getElementById('canvas-container').style.backgroundPosition = "center"; // Adjust as needed
+}
+        
  function animate() {
     requestAnimationFrame(animate);
     if (isRotating) {
