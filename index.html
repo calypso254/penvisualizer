@@ -377,22 +377,31 @@ function exportGIF() {
 
     let frames = [];
     const originalRotation = pen.rotation.y;
+    
+    // Create more frames for smoother animation
+    const totalFrames = 60;  // Increase this for smoother rotation (e.g., 60 frames for 360-degree)
+    const degreesPerFrame = (2 * Math.PI) / totalFrames;
 
-    for (let i = 0; i < 8; i++) {
-        pen.rotation.y = originalRotation + (i * (Math.PI / 4));  // 8 frames for 360 degrees
+    // Increase renderer resolution for better quality
+    renderer.setSize(900, 1600);  // Double the size to capture higher resolution
+
+    for (let i = 0; i < totalFrames; i++) {
+        pen.rotation.y = originalRotation + (i * degreesPerFrame);  // Rotate the pen slightly for each frame
         renderer.render(scene, camera);
         frames.push(renderer.domElement.toDataURL('image/png'));
     }
 
-    pen.rotation.y = originalRotation;  // Restore original rotation
+    pen.rotation.y = originalRotation;  // Restore the original rotation
 
+    // Generate GIF with more frames and better resolution
     gifshot.createGIF({
         images: frames,
-        gifWidth: 450,
-        gifHeight: 800,
-        interval: 0.5,
-        numFrames: 8,
-        loop: 0  // Disable looping
+        gifWidth: 450,   // Set GIF output width (adjust as needed)
+        gifHeight: 800,  // Set GIF output height (adjust as needed)
+        interval: 0.1,   // Reduce interval for a smoother GIF (0.1 sec between frames)
+        numFrames: totalFrames,
+        loop: 0,         // No looping
+        quality: 10      // Highest quality setting for gifshot
     }, function (obj) {
         if (!obj.error) {
             const image = obj.image;
@@ -406,7 +415,11 @@ function exportGIF() {
             console.error('GIF creation failed:', obj.error);
         }
     });
+
+    // Restore original renderer resolution after exporting
+    renderer.setSize(450, 800);
 }
+
 
 function toggleRotation() {
     isRotating = !isRotating;
