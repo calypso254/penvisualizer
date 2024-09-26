@@ -158,93 +158,84 @@
     let directionalLight, ambientLight;
     let rotationStartPoint = 0;
 
-   function init() {
-    scene = new THREE.Scene();
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(450, 800);
+        renderer.setClearColor(0x808080, 0);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(450, 800);
-    renderer.setClearColor(0x808080, 0);  // Ensure transparency
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.autoClear = false;  // Prevent clearing the background between frames
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
+        const points = [];
+        const topRadius = 5;
+        const bottomRadius = 4;
+        const totalHeight = 58.6;
+        const straightHeight = 35;
+        const curveHeight = totalHeight - straightHeight;
 
-    // Load background image as texture
-    const backgroundTexture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/calypso254/penvisualizer/main/visualizerbackground.png');
-    const backgroundMaterial = new THREE.MeshBasicMaterial({ map: backgroundTexture });
-    const backgroundGeometry = new THREE.PlaneGeometry(450, 800);
-    const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+        // Top circle
+        for (let i = 0; i <= 20; i++) {
+            points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * topRadius, totalHeight));
+        }
+        
+        // Straight section
+        points.push(new THREE.Vector2(topRadius, totalHeight));
+        points.push(new THREE.Vector2(topRadius, curveHeight));
+        
+        // Curved section
+        for (let i = 1; i <= 20; i++) {
+            const t = i / 20;
+            const radius = topRadius + (bottomRadius - topRadius) * t;
+            const y = curveHeight * (1 - t);
+            points.push(new THREE.Vector2(radius, y));
+        }
+        
+        // Bottom circle
+        for (let i = 20; i >= 0; i--) {
+            points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * bottomRadius, 0));
+        }
 
-    // Position the background further behind the pen
-    backgroundMesh.position.z = -500;  // Push the background further behind
-    scene.add(backgroundMesh);
+        const geometry = new THREE.LatheGeometry(points, 128);  // Increased segments to 128
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0xcccccc,
+            metalness: 0.2,
+            roughness: 0.1
+        });
+        pen = new THREE.Mesh(geometry, material);
+        scene.add(pen);
 
-    const points = [];
-    const topRadius = 5;
-    const bottomRadius = 4;
-    const totalHeight = 58.6;
-    const straightHeight = 35;
-    const curveHeight = totalHeight - straightHeight;
+        ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
 
-    // Top circle
-    for (let i = 0; i <= 20; i++) {
-        points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * topRadius, totalHeight));
+        directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight.position.set(-1, -1, 1);
+        scene.add(fillLight);
+
+        camera.position.set(0, 29.3, 100);
+        camera.lookAt(0, 29.3, 0);
+
+        animate();
     }
 
-    // Straight section
-    points.push(new THREE.Vector2(topRadius, totalHeight));
-    points.push(new THREE.Vector2(topRadius, curveHeight));
-
-    // Curved section
-    for (let i = 1; i <= 20; i++) {
-        const t = i / 20;
-        const radius = topRadius + (bottomRadius - topRadius) * t;
-        const y = curveHeight * (1 - t);
-        points.push(new THREE.Vector2(radius, y));
-    }
-
-    // Bottom circle
-    for (let i = 20; i >= 0; i--) {
-        points.push(new THREE.Vector2(Math.cos(i * 0.1 * Math.PI) * bottomRadius, 0));
-    }
-
-    const geometry = new THREE.LatheGeometry(points, 128);  // Increased segments to 128 for smoother edges
-    const material = new THREE.MeshStandardMaterial({ 
-        color: 0xcccccc,
-        metalness: 0.2,
-        roughness: 0.1
-    });
-    pen = new THREE.Mesh(geometry, material);
-    scene.add(pen);
-
-    ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    fillLight.position.set(-1, -1, 1);
-    scene.add(fillLight);
-
-    camera.position.set(0, 29.3, 100);
-    camera.lookAt(0, 29.3, 0);
-
-    animate();  // Start the rendering loop
-}
-
-function animate() {
+       
+ function animate() {
     requestAnimationFrame(animate);
-    
-    renderer.clear();  // Clear previous frame
+    if (isRotating) {
+        if (pen) {
+            pen.rotation.y += 0.01;
+        }
+    }
     renderer.render(scene, camera);
-    
+
     if (isExporting) {
         capturer.capture(renderer.domElement);
     }
 }
-
 
 function handleFileUpload(event) {
     const file = event.target.files[0];
@@ -374,7 +365,7 @@ function exportMP4() {
             a.click();
             document.body.removeChild(a);
         });
-    }, 5000);  // Export 5 seconds of animation for a full 360-degree rotation
+    }, 20000);  // Export 20 seconds of animation for a full 360-degree rotation
 }
 
 function exportGIF() {
