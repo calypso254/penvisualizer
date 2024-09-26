@@ -164,8 +164,9 @@
     camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(450, 800);
-    renderer.setClearColor(0x808080, 0);  // Ensure alpha channel is used for transparency
+    renderer.setClearColor(0x808080, 0);  // Ensure transparency
     renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.autoClear = false;  // Prevent clearing the background between frames
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
     // Load background image as texture
@@ -174,8 +175,8 @@
     const backgroundGeometry = new THREE.PlaneGeometry(450, 800);
     const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
 
-    // Position the background behind the pen
-    backgroundMesh.position.z = -100;  // Adjust as necessary to place it behind the pen
+    // Position the background further behind the pen
+    backgroundMesh.position.z = -500;  // Push the background further behind
     scene.add(backgroundMesh);
 
     const points = [];
@@ -233,20 +234,17 @@
     animate();  // Start the rendering loop
 }
 
-       
- function animate() {
+function animate() {
     requestAnimationFrame(animate);
-    if (isRotating) {
-        if (pen) {
-            pen.rotation.y += 0.01;
-        }
-    }
+    
+    renderer.clear();  // Clear previous frame
     renderer.render(scene, camera);
-
+    
     if (isExporting) {
         capturer.capture(renderer.domElement);
     }
 }
+
 
 function handleFileUpload(event) {
     const file = event.target.files[0];
