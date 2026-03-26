@@ -2,17 +2,15 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; worker-src 'self' blob:;">
     <title>PenGems Visualizer - Custom Pen Design</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/downloadjs/1.4.8/download.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
-    <script src="scripts/CCapture.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/3.1.1/svg.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="scripts/webm-writer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
 
     <style>
   body {
@@ -32,7 +30,7 @@
     padding: 2rem;
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    max-width: 450px;
+    max-width: 520px;
     width: 100%;
   }
   h1 {
@@ -41,17 +39,25 @@
     font-size: 1.8rem;
   }
   #canvas-container {
-    width: 100%;
-    height: 800px;
+    width: min(100%, 450px);
+    aspect-ratio: 9 / 16;
+    height: auto;
     margin: 0 auto;
     border: 1px solid #e0e0e0;
     border-radius: 10px;
     overflow: hidden;
-    /* background-color: #f0f0f0; */
-    background-image: url('https://raw.githubusercontent.com/calypso254/penvisualizer/main/visualizerbackground-black.png');
+    background-image: url('visualizerbackground-black.png');
     background-size: cover; 
     background-repeat: no-repeat;
-    background-position: center; 
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
   }
   #file-input {
     display: none;
@@ -110,6 +116,73 @@
   #brightness-slider {
     width: 200px;
   }
+  .export-controls {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: #2c3e50;
+  }
+  .control-group input {
+    width: 70px;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+  .background-controls {
+    margin-top: 1rem;
+    padding: 0.9rem;
+    background-color: #f7f9fb;
+    border: 1px solid #e4ebf2;
+    border-radius: 10px;
+  }
+  .background-controls-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    color: #2c3e50;
+    font-weight: 600;
+  }
+  .background-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+  }
+  .background-row label {
+    font-size: 0.9rem;
+    color: #2c3e50;
+  }
+  .background-row select,
+  .background-row input[type="color"] {
+    border: 1px solid #cfd8e3;
+    border-radius: 6px;
+    background-color: #ffffff;
+  }
+  .background-row select {
+    padding: 0.4rem 0.5rem;
+  }
+  .background-row input[type="color"] {
+    width: 46px;
+    height: 36px;
+    padding: 0.15rem;
+  }
+  .background-row input[type="file"] {
+    max-width: 100%;
+    font-size: 0.85rem;
+  }
+  .background-row.is-hidden {
+    display: none;
+  }
   .export-options {
     display: flex;
     justify-content: center;
@@ -118,6 +191,16 @@
   }
   .export-options .btn {
     margin: 0.25rem;
+  }
+  .btn:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+  #export-status {
+    min-height: 1.25rem;
+    margin-top: 0.75rem;
+    color: #2c3e50;
+    font-size: 0.9rem;
   }
 </style>
 </head>
@@ -134,6 +217,43 @@
             <label for="brightness-slider">Light Brightness:</label>
             <input type="range" id="brightness-slider" min="0" max="2" step="0.1" value="1">
         </div>
+        <div class="background-controls">
+            <p class="background-controls-title">Background</p>
+            <div class="background-row">
+                <label for="background-type-select">Type</label>
+                <select id="background-type-select">
+                    <option value="default-image">Default Image</option>
+                    <option value="gold-image">Gold Background</option>
+                    <option value="flat-color">Flat Color</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="custom-image">Custom Image</option>
+                </select>
+            </div>
+            <div id="background-flat-row" class="background-row is-hidden">
+                <label for="background-flat-color">Color</label>
+                <input id="background-flat-color" type="color" value="#101820">
+            </div>
+            <div id="background-gradient-row" class="background-row is-hidden">
+                <label for="background-gradient-start">Start</label>
+                <input id="background-gradient-start" type="color" value="#101820">
+                <label for="background-gradient-end">End</label>
+                <input id="background-gradient-end" type="color" value="#3f5a78">
+            </div>
+            <div id="background-image-row" class="background-row is-hidden">
+                <label for="background-image-input">Image</label>
+                <input id="background-image-input" type="file" accept=".png,.jpg,.jpeg,.webp">
+            </div>
+        </div>
+        <div class="export-controls">
+            <div class="control-group">
+                <label for="gif-fps-input">GIF FPS</label>
+                <input id="gif-fps-input" type="number" min="1" max="30" step="1" value="10">
+            </div>
+            <div class="control-group">
+                <label for="gif-duration-input">GIF Seconds</label>
+                <input id="gif-duration-input" type="number" min="1" max="12" step="0.5" value="2.4">
+            </div>
+        </div>
         <div class="export-options">
             <button id="export-png-btn" class="btn">Export PNG</button>
             <button id="export-jpg-btn" class="btn">Export JPG</button>
@@ -141,6 +261,7 @@
             <button id="export-stl-btn" class="btn">Export STL</button>
             <button id="export-gif-btn" class="btn">Export GIF</button>
         </div>
+        <div id="export-status" aria-live="polite"></div>
         <div class="specs">
             <p><strong>Height:</strong> 58.6mm</p>
             <p><strong>Top Diameter:</strong> 10mm</p>
@@ -152,17 +273,44 @@
     <script>
     let scene, camera, renderer, pen;
     let isExporting = false;
-    let capturer;
     let isRotating = false;
     let isTextured = false;
     let directionalLight, ambientLight;
     let rotationStartPoint = 0;
+    let defaultBackgroundPromise;
+    let goldBackgroundPromise;
+    let customBackgroundObjectUrl = '';
+
+    const PREVIEW_WIDTH = 450;
+    const PREVIEW_HEIGHT = 800;
+    const EXPORT_BACKGROUND_SRC = 'visualizerbackground-black.png';
+    const GOLD_BACKGROUND_SRC = 'visualizerbackground-gold.png';
+    const backgroundState = {
+        type: 'default-image',
+        flatColor: '#101820',
+        gradientStart: '#101820',
+        gradientEnd: '#3f5a78',
+        customImage: null
+    };
+    const VIDEO_EXPORT = {
+        width: 900,
+        height: 1600,
+        frameRate: 30,
+        frameCount: 120
+    };
+    const GIF_EXPORT = {
+        width: 540,
+        height: 960,
+        defaultFrameRate: 10,
+        defaultDurationSeconds: 2.4
+    };
 
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.OrthographicCamera(-20, 20, 35.6, -35.6, 1, 1000);
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(450, 800);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
         renderer.setClearColor(0x808080, 0);
         renderer.outputEncoding = THREE.sRGBEncoding;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
@@ -219,6 +367,8 @@
         camera.position.set(0, 29.3, 100);
         camera.lookAt(0, 29.3, 0);
 
+        updateBackgroundControlsVisibility();
+        applyPreviewBackground();
         animate();
     }
 
@@ -232,9 +382,6 @@
     }
     renderer.render(scene, camera);
 
-    if (isExporting) {
-        capturer.capture(renderer.domElement);
-    }
 }
 
 function handleFileUpload(event) {
@@ -279,6 +426,13 @@ function handleRasterImage(data) {
 function applyDecal(imageData) {
     const texture = new THREE.TextureLoader().load(imageData, function(tex) {
         tex.encoding = THREE.sRGBEncoding;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.generateMipmaps = true;
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
         if (pen.material.map) {
             pen.material.map.dispose();
         }
@@ -333,79 +487,432 @@ function exportJPG() {
     }, 'image/jpeg');
 }
 
-function exportMP4() {
-    if (typeof CCapture === 'undefined') {
-        console.error('CCapture is not loaded. Please check your internet connection and try again.');
-        alert('Unable to start video capture. Please check your internet connection and try again.');
-        return;
-    }
-
-    capturer = new CCapture({
-        format: 'webm',
-        framerate: 60,
-        verbose: true,
-        name: 'pengems_design',
-        quality: 100
-    });
-
-    isRotating = true;
-    isExporting = true;
-    capturer.start();
-
-    setTimeout(() => {
-        isRotating = false;
-        isExporting = false;
-        capturer.stop();
-        capturer.save((blob) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pengems_design.webm';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
-    }, 5000);  // Export 5 seconds of animation for a full 360-degree rotation
+function getExportStatusElement() {
+    return document.getElementById('export-status');
 }
 
-function exportGIF() {
-    if (typeof gifshot === 'undefined') {
-        console.error('gifshot is not loaded. Please check your internet connection and try again.');
-        alert('Unable to start GIF capture. Please check your internet connection and try again.');
+function setExportStatus(message, isError = false) {
+    const status = getExportStatusElement();
+    if (!status) {
         return;
     }
 
-    let frames = [];
-    const originalRotation = pen.rotation.y;
+    status.textContent = message;
+    status.style.color = isError ? '#c0392b' : '#2c3e50';
+}
 
-    for (let i = 0; i < 8; i++) {
-        pen.rotation.y = originalRotation + (i * (Math.PI / 4));  // 8 frames for 360 degrees
-        renderer.render(scene, camera);
-        frames.push(renderer.domElement.toDataURL('image/png'));
-    }
-
-    pen.rotation.y = originalRotation;  // Restore original rotation
-
-    gifshot.createGIF({
-        images: frames,
-        gifWidth: 450,
-        gifHeight: 800,
-        interval: 0.5,
-        numFrames: 8,
-        loop: 0  // Disable looping
-    }, function (obj) {
-        if (!obj.error) {
-            const image = obj.image;
-            const a = document.createElement('a');
-            a.href = image;
-            a.download = 'pengems_design.gif';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            console.error('GIF creation failed:', obj.error);
+function setExportControlsDisabled(disabled) {
+    [
+        'export-png-btn',
+        'export-jpg-btn',
+        'export-mp4-btn',
+        'export-gif-btn',
+        'export-stl-btn',
+        'clear-btn',
+        'rotate-btn',
+        'texture-btn',
+        'gif-fps-input',
+        'gif-duration-input',
+        'background-type-select',
+        'background-flat-color',
+        'background-gradient-start',
+        'background-gradient-end',
+        'background-image-input'
+    ].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.disabled = disabled;
         }
     });
+}
+
+function loadDefaultBackgroundImage() {
+    if (!defaultBackgroundPromise) {
+        defaultBackgroundPromise = new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('Unable to load the export background image.'));
+            image.src = EXPORT_BACKGROUND_SRC;
+        });
+    }
+
+    return defaultBackgroundPromise;
+}
+
+function loadGoldBackgroundImage() {
+    if (!goldBackgroundPromise) {
+        goldBackgroundPromise = new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('Unable to load the gold background image.'));
+            image.src = GOLD_BACKGROUND_SRC;
+        });
+    }
+
+    return goldBackgroundPromise;
+}
+
+function createExportRenderer(width, height) {
+    const exportRenderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true,
+        powerPreference: 'high-performance'
+    });
+    exportRenderer.setPixelRatio(1);
+    exportRenderer.setSize(width, height, false);
+    exportRenderer.setClearColor(0x000000, 0);
+    exportRenderer.outputEncoding = THREE.sRGBEncoding;
+
+    if (pen.material.map) {
+        pen.material.map.anisotropy = exportRenderer.capabilities.getMaxAnisotropy();
+        pen.material.map.needsUpdate = true;
+    }
+
+    return exportRenderer;
+}
+
+function createCompositeCanvas(width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+}
+
+function getNumericInputValue(id, fallbackValue, minValue, maxValue) {
+    const element = document.getElementById(id);
+    const rawValue = element ? parseFloat(element.value) : fallbackValue;
+
+    if (!Number.isFinite(rawValue)) {
+        return fallbackValue;
+    }
+
+    return Math.min(Math.max(rawValue, minValue), maxValue);
+}
+
+function wait(milliseconds) {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, milliseconds);
+    });
+}
+
+function getBackgroundCssValue() {
+    if (backgroundState.type === 'flat-color') {
+        return backgroundState.flatColor;
+    }
+
+    if (backgroundState.type === 'gold-image') {
+        return `url('${GOLD_BACKGROUND_SRC}')`;
+    }
+
+    if (backgroundState.type === 'gradient') {
+        return `linear-gradient(180deg, ${backgroundState.gradientStart} 0%, ${backgroundState.gradientEnd} 100%)`;
+    }
+
+    if (backgroundState.type === 'custom-image' && backgroundState.customImage) {
+        return `url('${backgroundState.customImage.src}')`;
+    }
+
+    return `url('${EXPORT_BACKGROUND_SRC}')`;
+}
+
+function updateBackgroundControlsVisibility() {
+    const flatRow = document.getElementById('background-flat-row');
+    const gradientRow = document.getElementById('background-gradient-row');
+    const imageRow = document.getElementById('background-image-row');
+
+    flatRow.classList.toggle('is-hidden', backgroundState.type !== 'flat-color');
+    gradientRow.classList.toggle('is-hidden', backgroundState.type !== 'gradient');
+    imageRow.classList.toggle('is-hidden', backgroundState.type !== 'custom-image');
+}
+
+function applyPreviewBackground() {
+    const container = document.getElementById('canvas-container');
+    const backgroundValue = getBackgroundCssValue();
+
+    container.style.backgroundImage = backgroundValue.startsWith('url(') || backgroundValue.startsWith('linear-gradient(')
+        ? backgroundValue
+        : 'none';
+    container.style.backgroundColor = backgroundValue.startsWith('#') ? backgroundValue : 'transparent';
+    container.style.backgroundSize = 'cover';
+    container.style.backgroundRepeat = 'no-repeat';
+    container.style.backgroundPosition = 'center';
+}
+
+async function loadImageFile(file) {
+    return new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(file);
+        const image = new Image();
+
+        image.onload = () => resolve({ image, objectUrl });
+        image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Unable to load the selected background image.'));
+        };
+        image.src = objectUrl;
+    });
+}
+
+async function handleBackgroundImageUpload(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+        return;
+    }
+
+    try {
+        const { image, objectUrl } = await loadImageFile(file);
+        if (customBackgroundObjectUrl) {
+            URL.revokeObjectURL(customBackgroundObjectUrl);
+        }
+
+        customBackgroundObjectUrl = objectUrl;
+        backgroundState.customImage = image;
+        backgroundState.type = 'custom-image';
+        document.getElementById('background-type-select').value = 'custom-image';
+        updateBackgroundControlsVisibility();
+        applyPreviewBackground();
+        setExportStatus('Background image updated.');
+    } catch (error) {
+        console.error(error);
+        alert(error.message || 'Unable to load that background image.');
+    }
+}
+
+async function resolveExportBackgroundImage() {
+    if (backgroundState.type === 'default-image') {
+        return loadDefaultBackgroundImage().catch(() => null);
+    }
+
+    if (backgroundState.type === 'gold-image') {
+        return loadGoldBackgroundImage().catch(() => null);
+    }
+
+    if (backgroundState.type === 'custom-image') {
+        return backgroundState.customImage;
+    }
+
+    return null;
+}
+
+function drawCoverImage(context, image, width, height) {
+    const imageAspect = image.width / image.height;
+    const canvasAspect = width / height;
+    let drawWidth = width;
+    let drawHeight = height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (imageAspect > canvasAspect) {
+        drawHeight = height;
+        drawWidth = height * imageAspect;
+        offsetX = (width - drawWidth) / 2;
+    } else {
+        drawWidth = width;
+        drawHeight = width / imageAspect;
+        offsetY = (height - drawHeight) / 2;
+    }
+
+    context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+}
+
+function drawConfiguredBackground(context, width, height, backgroundImage) {
+    context.clearRect(0, 0, width, height);
+
+    if (backgroundState.type === 'flat-color') {
+        context.fillStyle = backgroundState.flatColor;
+        context.fillRect(0, 0, width, height);
+        return;
+    }
+
+    if (backgroundState.type === 'gradient') {
+        const gradient = context.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, backgroundState.gradientStart);
+        gradient.addColorStop(1, backgroundState.gradientEnd);
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, width, height);
+        return;
+    }
+
+    if (backgroundImage) {
+        drawCoverImage(context, backgroundImage, width, height);
+        return;
+    }
+
+    context.fillStyle = '#111111';
+    context.fillRect(0, 0, width, height);
+}
+
+function getSupportedVideoMimeType() {
+    const mimeTypes = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+    ];
+
+    if (typeof MediaRecorder === 'undefined') {
+        return '';
+    }
+
+    return mimeTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || '';
+}
+
+function renderFrameToCanvas(exportRenderer, compositeCanvas, compositeContext, backgroundImage, rotation) {
+    pen.rotation.y = rotation;
+    exportRenderer.render(scene, camera);
+
+    drawConfiguredBackground(compositeContext, compositeCanvas.width, compositeCanvas.height, backgroundImage);
+    compositeContext.drawImage(exportRenderer.domElement, 0, 0, compositeCanvas.width, compositeCanvas.height);
+}
+
+async function runExport(exportLabel, exporter) {
+    if (isExporting) {
+        return;
+    }
+
+    const previousRotation = pen.rotation.y;
+    const wasRotating = isRotating;
+    isExporting = true;
+    isRotating = false;
+    setExportControlsDisabled(true);
+    setExportStatus(exportLabel);
+
+    try {
+        await exporter(previousRotation);
+        setExportStatus(`${exportLabel} complete.`);
+    } catch (error) {
+        console.error(error);
+        setExportStatus(error.message || `Unable to complete ${exportLabel.toLowerCase()}.`, true);
+        alert(error.message || 'The export failed. Please try again.');
+    } finally {
+        pen.rotation.y = previousRotation;
+        isRotating = wasRotating;
+        isExporting = false;
+        setExportControlsDisabled(false);
+        renderer.render(scene, camera);
+    }
+}
+
+async function exportMP4() {
+    const mimeType = getSupportedVideoMimeType();
+    if (!mimeType) {
+        alert('Video export is unavailable because this browser does not support WebM recording.');
+        return;
+    }
+
+    await runExport('Exporting Video', async (startingRotation) => {
+        const exportRenderer = createExportRenderer(VIDEO_EXPORT.width, VIDEO_EXPORT.height);
+        const compositeCanvas = createCompositeCanvas(VIDEO_EXPORT.width, VIDEO_EXPORT.height);
+        const compositeContext = compositeCanvas.getContext('2d');
+        const backgroundImage = await resolveExportBackgroundImage();
+        const stream = compositeCanvas.captureStream(0);
+        const videoTrack = stream.getVideoTracks()[0];
+        const chunks = [];
+        const recorder = new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond: 12000000
+        });
+        const recordingComplete = new Promise((resolve, reject) => {
+            recorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
+            recorder.onerror = () => reject(new Error('Video recording failed.'));
+            recorder.onstop = () => {
+                resolve(new Blob(chunks, { type: mimeType }));
+            };
+        });
+
+        try {
+            recorder.start();
+
+            for (let frameIndex = 0; frameIndex < VIDEO_EXPORT.frameCount; frameIndex++) {
+                const rotation = startingRotation + ((frameIndex / VIDEO_EXPORT.frameCount) * Math.PI * 2);
+                renderFrameToCanvas(exportRenderer, compositeCanvas, compositeContext, backgroundImage, rotation);
+                if (videoTrack && typeof videoTrack.requestFrame === 'function') {
+                    videoTrack.requestFrame();
+                }
+                await wait(1000 / VIDEO_EXPORT.frameRate);
+
+                if (frameIndex % 10 === 0 || frameIndex === VIDEO_EXPORT.frameCount - 1) {
+                    setExportStatus(`Exporting Video (${frameIndex + 1}/${VIDEO_EXPORT.frameCount})`);
+                }
+            }
+
+            await wait(150);
+            recorder.stop();
+            const blob = await recordingComplete;
+            saveAs(blob, 'pengems_design.webm');
+        } finally {
+            stream.getTracks().forEach((track) => track.stop());
+            exportRenderer.dispose();
+        }
+    });
+}
+
+async function exportGIF() {
+    if (typeof GIF === 'undefined') {
+        alert('GIF export is unavailable because gif.js did not load.');
+        return;
+    }
+
+    await runExport('Exporting GIF', async (startingRotation) => {
+        const gifFrameRate = getNumericInputValue('gif-fps-input', GIF_EXPORT.defaultFrameRate, 1, 30);
+        const gifDurationSeconds = getNumericInputValue('gif-duration-input', GIF_EXPORT.defaultDurationSeconds, 1, 12);
+        const gifFrameCount = Math.max(8, Math.round(gifFrameRate * gifDurationSeconds));
+        const gifFrameDelay = Math.round(1000 / gifFrameRate);
+        const exportRenderer = createExportRenderer(GIF_EXPORT.width, GIF_EXPORT.height);
+        const compositeCanvas = createCompositeCanvas(GIF_EXPORT.width, GIF_EXPORT.height);
+        const compositeContext = compositeCanvas.getContext('2d');
+        const backgroundImage = await resolveExportBackgroundImage();
+        const gif = new GIF({
+            workers: 2,
+            quality: 8,
+            workerScript: 'scripts/gif.worker.js',
+            width: GIF_EXPORT.width,
+            height: GIF_EXPORT.height
+        });
+
+        gif.on('progress', (progress) => {
+            setExportStatus(`Rendering GIF (${Math.round(progress * 100)}%)`);
+        });
+
+        try {
+            for (let frameIndex = 0; frameIndex < gifFrameCount; frameIndex++) {
+                const rotation = startingRotation + ((frameIndex / gifFrameCount) * Math.PI * 2);
+                renderFrameToCanvas(exportRenderer, compositeCanvas, compositeContext, backgroundImage, rotation);
+                gif.addFrame(compositeContext, {
+                    copy: true,
+                    delay: gifFrameDelay
+                });
+
+                if (frameIndex % 6 === 0 || frameIndex === gifFrameCount - 1) {
+                    setExportStatus(`Preparing GIF (${frameIndex + 1}/${gifFrameCount})`);
+                }
+            }
+
+            const blob = await new Promise((resolve, reject) => {
+                gif.on('finished', resolve);
+                gif.on('abort', () => reject(new Error('GIF export was aborted.')));
+                gif.render();
+            });
+
+            saveAs(blob, 'pengems_design.gif');
+        } finally {
+            exportRenderer.dispose();
+        }
+    });
+}
+
+function exportSTL() {
+    if (typeof THREE.STLExporter === 'undefined') {
+        alert('STL export is unavailable because the STL exporter did not load.');
+        return;
+    }
+
+    const exporter = new THREE.STLExporter();
+    const stl = exporter.parse(pen);
+    saveAs(new Blob([stl], { type: 'model/stl' }), 'pengems_design.stl');
 }
 
 function toggleRotation() {
@@ -446,6 +953,28 @@ function adjustBrightness(event) {
     ambientLight.intensity = brightness * 0.6;
 }
 
+function handleBackgroundTypeChange(event) {
+    backgroundState.type = event.target.value;
+    updateBackgroundControlsVisibility();
+    applyPreviewBackground();
+    renderer.render(scene, camera);
+}
+
+function handleFlatColorChange(event) {
+    backgroundState.flatColor = event.target.value;
+    applyPreviewBackground();
+}
+
+function handleGradientStartChange(event) {
+    backgroundState.gradientStart = event.target.value;
+    applyPreviewBackground();
+}
+
+function handleGradientEndChange(event) {
+    backgroundState.gradientEnd = event.target.value;
+    applyPreviewBackground();
+}
+
 init();
 
 document.getElementById('file-input').addEventListener('change', handleFileUpload);
@@ -454,17 +983,15 @@ document.getElementById('export-png-btn').addEventListener('click', exportPNG);
 document.getElementById('export-jpg-btn').addEventListener('click', exportJPG);
 document.getElementById('export-mp4-btn').addEventListener('click', exportMP4);
 document.getElementById('export-gif-btn').addEventListener('click', exportGIF);
+document.getElementById('export-stl-btn').addEventListener('click', exportSTL);
 document.getElementById('rotate-btn').addEventListener('click', toggleRotation);
 document.getElementById('texture-btn').addEventListener('click', toggleTexture);
 document.getElementById('brightness-slider').addEventListener('input', adjustBrightness);
-
-window.addEventListener('load', function() {
-    if (typeof CCapture === 'undefined') {
-        console.warn('CCapture is not loaded. Video export may not work.');
-    } else {
-        console.log('CCapture is loaded and ready.');
-    }
-});
+document.getElementById('background-type-select').addEventListener('change', handleBackgroundTypeChange);
+document.getElementById('background-flat-color').addEventListener('input', handleFlatColorChange);
+document.getElementById('background-gradient-start').addEventListener('input', handleGradientStartChange);
+document.getElementById('background-gradient-end').addEventListener('input', handleGradientEndChange);
+document.getElementById('background-image-input').addEventListener('change', handleBackgroundImageUpload);
 
 </script>
 
