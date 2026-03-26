@@ -13,13 +13,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 
     <style>
+  html, body {
+    width: 100%;
+    min-height: 100%;
+  }
   body {
     font-family: 'Roboto', Arial, sans-serif;
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: grid;
+    place-items: center;
     min-height: 100vh;
     background-color: #f0f4f8;
     color: #333;
@@ -31,14 +34,16 @@
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     max-width: 520px;
-    width: 100%;
+    width: min(calc(100vw - 2rem), 520px);
+    margin: 1rem auto;
+    box-sizing: border-box;
   }
   h1 {
     color: #2c3e50;
     margin-bottom: 1rem;
     font-size: 1.8rem;
   }
-  #canvas-container {
+  #preview-stage {
     width: min(100%, 450px);
     aspect-ratio: 9 / 16;
     height: auto;
@@ -50,6 +55,14 @@
     background-size: cover; 
     background-repeat: no-repeat;
     background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  #canvas-container {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -207,7 +220,9 @@
 <body>
     <div class="container">
         <h1>PenGems Visualizer</h1>
-        <div id="canvas-container"></div>
+        <div id="preview-stage">
+            <div id="canvas-container"></div>
+        </div>
         <input type="file" id="file-input" accept=".ai,.svg,.jpg,.jpeg,.png" />
         <label for="file-input" class="btn">Upload Design</label>
         <button id="clear-btn" class="btn">Clear Design</button>
@@ -627,7 +642,7 @@ function updateBackgroundControlsVisibility() {
 }
 
 function applyPreviewBackground() {
-    const container = document.getElementById('canvas-container');
+    const container = document.getElementById('preview-stage');
     const backgroundValue = getBackgroundCssValue();
 
     container.style.backgroundImage = backgroundValue.startsWith('url(') || backgroundValue.startsWith('linear-gradient(')
